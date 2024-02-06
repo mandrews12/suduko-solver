@@ -1,41 +1,23 @@
+#include <vector>
+#include <string>
 
-/*  Sudoku Overview:
- *
- *  Sudoku takes a file of comma-separated lines and uses
- *  it to store a sudoku board state as a 1D array of ints
- *  in row-major order.
- *
- *  For Programming Assignment 05, this class will be used to
- *  test problem 3.
- *
- *  Problem 3 will be tested by calling the solve member function
- *
- *  Note: in a proper C++ class you would have Getters and Setters
- *  however, here we don't do that since all values are changed
- *  internally from within the class itself.
- */
-
-#ifndef _SUDOKU_H_
-#define _SUDOKU_H_
-
-class Sudoku {
+class Sudoku{
     private:
-        // puzzle will store the Sudoku puzzle in 1D space
-        int puzzle[81];
-        int index = 0;
-        int col = 0;
+        const unsigned int EMPTY = 0;
+        const unsigned int BOARD_SIZE = 9;
+        std::vector<std::vector<unsigned int> > board = std::vector<std::vector<unsigned int> >(9, std::vector<unsigned int>(9, 0));;
+
+        bool is_valid(unsigned int row, unsigned int col, int num);
+        bool check_row(unsigned int row, unsigned int num);
+        bool check_col(unsigned int col, unsigned int num);
+        bool check_box(unsigned int boxStartRow, unsigned int boxStartCol, unsigned int num);
+
     public:
-        /* Class constructors and destructors */
-        // class constructor using a file
-        Sudoku(const char *fname);
-        // class destructor
+        Sudoku();
+        Sudoku(std::string f_name);
         ~Sudoku();
-        /* Member functions */
-        // solve the sudoku puzzle
-        void solve();
-        
-        bool r_solve(int index, int col);
-        // prints the Sudoku puzzle in 2D format
-        void print();
+
+        // Feel free to change this definition
+        bool solve(unsigned int row,unsigned int col);
+        void display_board();
 };
-#endif

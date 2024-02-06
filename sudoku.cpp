@@ -1,113 +1,152 @@
 
 #include "sudoku.h"
-#include <iostream>
-#include <fstream>
-#include <string>
 #include <sstream>
+#include <fstream>
+#include <iostream>
+
 using namespace std;
 
-// reads a file containing a sudoku puzzle represented as
-// 9 rows, each consisting of 9 comma-separated values
-Sudoku::Sudoku(const char *fname) {
+Sudoku::Sudoku() {
+
+}
+
+Sudoku::~Sudoku() {
+
+}
+
+Sudoku::Sudoku(std::string f_name) {
+    // Generate a board from the give file
     // create a file reader stream to read data from a file
+
+    // create vector and string to store data from file and open file
+    vector<int> my_nums;
+    string line;
+
     ifstream infile;
+   
+    infile.open(f_name);
 
-    // will store lines and numbers
-    string line, number;
-
-    // index to write value to in puzzle
-    int i = 0;
-
-    // open a stream to the given file
-    infile.open(fname);
-
-    // get a line of input from the file
+    // get data from the file and store in vector
     while(getline(infile, line)) {
-        // store the line inside a stringstream
-        stringstream parser(line);
-        // use stringstream to split line along ','
-        while(getline(parser, number, ',')) {
-            // convert string to an integer, store it, and update iterator
-            puzzle[i++] = stoi(number);
+        
+        stringstream current(line);
+
+        int my_int;
+        while(current >> my_int){
+            my_nums.push_back(my_int);
         }
     }
-    // close the filestream once we are done wiht it
+    
+    // close the file
     infile.close();
+
+    // convert file data to sudoku board
+    int a = 0;
+    for(int j = 0; j < 9; j++) {
+        for(int k = 0; k < 9; k++) {
+            board[j][k] = my_nums[a];
+            a += 1;
+        }
+    }
+
+    
 }
 
-// destruct Sudoku object
-Sudoku::~Sudoku() {
-    // since we never allocated any memory on the heap, we don't need
-    // to define behavior for the deconstructor
-}
-
-// this is the funciton call which will be made by the autograder to test
-// your implementation for problem 3. It takes no parameters and
-// should overwrite the 0s in puzzle to so that it represents a solved puzzle
-bool Sudoku::r_solve(int index, int col) {
-    // checks if puzzle has been completly solved
-    if ((index + 9*col)>= 81) {
+bool Sudoku::solve(unsigned int row,unsigned int col) {
+    //1) If we have filled the entire board,  return true
+    if(row >= 8 && col >= 9) {
         return true;
     }
     
-    // makes sure index stays less than max col
-    if (index == 9) {
-        col += 1;
-        index = 0;
+    // bounds checks the col int
+    if(col == 9) {
+        row += 1;
+        col = 0;
     }
-    // if puzzle is already filled move to next cell
-    if (puzzle[index + 9*col] > 0) {
-        return r_solve(index + 1, col);
+    
+    // if the cell is already filled, recurse to next cell untill you find an empty cell
+    if(board[row][col] > 0) {
+        return solve(row,col+1);
     }
-     
-    // makes sure number is not in same row, col, and box
-    for (int num = 1; num < 10; num++){
-        bool good = true;
-        // check if same number is already in row or column
-        for (int i = 0; i < 9; i++){
-            if ((puzzle[i + 9*col] == num)||(puzzle[index + 9*i] == num)){
-                good = false;
-            }
-        }
-        // check if same num is in box
-        int firstI = index - index % 3;
-        int firstC = col - col % 3;
-        for (int i = 0; i < 3; i++){
-            for (int j = 0; j < 3; j++){
-                if (puzzle[(firstI+i)+9*(firstC+j)] == num){
-                    good =  false;
-                }
-            }
-        }
-	  
-        // as long as move is allowed change the cell and try next cell
-        if (good){
-            puzzle[index + 9*col] = num;
-            if(r_solve(index+1, col)) {
+    
+
+    //2) For each digit 1-9:
+    for(int i = 1; i <=9; i++) {
+	//- If this digit can be placed in this cell
+        if(is_valid(row,col,i)) {
+            //- Place the digit
+            board[row][col] = i;
+            //- Recurse to the next empty cell.
+            //- If that recursive call returns true
+            if(solve(row,col+1)) {
                 return true;
             }
+            
         }
-        // if num does not work return the cell to 0
-        puzzle[index + 9*col] = 0;
-
+        board[row][col] = 0;
     }
     return false;
 }
 
-// this function prints your puzzle in 2D format with commas
-// separating your values
-void Sudoku::print() {
+// If this is an empty space & the given number does not exist in the same
+// row, column, or box then it will return true.
+bool Sudoku::is_valid(unsigned int row, unsigned int col, int num){
+    return (this->board)[row][col] == 0 && !check_row(row, num) && !check_col(col, num)&& !check_box(row - row % 3, col - col % 3, num);
+}
+
+// checks if num is already in the row
+bool Sudoku::check_row(unsigned int row, unsigned int num){
+    bool found = false;
     for(int i = 0; i < 9; i++) {
-        std::cout << puzzle[i*9];
-        int base = i*9;
-        for(int offset = 1; offset < 9; offset++) {
-            std::cout << ',' << puzzle[base + offset];
+        if(board[row][i] == num) {
+            found = true;
+        }
+    }
+    return found;
+}
+
+// checks if num is already in the col
+bool Sudoku::check_col(unsigned int col, unsigned int num){
+    bool found = false;
+    for(int i = 0; i < 9; i++) {
+        if(board[i][col] == num) {
+            found = true;
+        }
+    }
+    return found;
+}
+
+// checks if num is already in the 3x3 box
+bool Sudoku::check_box(unsigned int boxStartRow, unsigned int boxStartCol, unsigned int num){
+    bool found = false;
+    for(int i = 0; i < 3; i++) {
+        for (int j = 0; j < 3; j++) {
+            if(board[boxStartRow+i][boxStartCol+j] == num) {
+                found = true;
+            }
+        }
+    }
+    return found;
+}
+
+void Sudoku::display_board(){
+    for (unsigned int i = 0; i < this->BOARD_SIZE; i++) {
+        for (unsigned int j = 0; j < this->BOARD_SIZE; j++){
+            std::cout << (this->board)[i][j] << " ";
         }
         std::cout << std::endl;
     }
 }
 
-void Sudoku::solve() {
-    bool found;
-    found = r_solve(0,0);
+int main(int argc, char * argv[])
+{
+    std::string f_name(argv[1]);
+
+    Sudoku s(f_name);
+    
+    s.solve(0,0);
+
+    s.display_board();
+
+    return 0;
 }
